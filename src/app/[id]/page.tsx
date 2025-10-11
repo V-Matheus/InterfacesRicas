@@ -65,22 +65,6 @@ export default function FilmePage({ params }: { params: { id: string } }) {
               enfrentar desafios, fazer aliados e descobrir seu verdadeiro
               potencial para cumprir seu destino.
             </p>
-            <div className="mt-6 flex flex-col sm:flex-row gap-4">
-              <Button
-                variant="default"
-                className="flex items-center justify-center gap-2 px-5 py-3"
-              >
-                <span className="material-symbols-outlined">play_arrow</span>
-                <span className="truncate">Assistir Trailer</span>
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex items-center justify-center gap-2 px-5 py-3"
-              >
-                <span className="material-symbols-outlined">bookmark_add</span>
-                <span className="truncate">Adicionar aos Favoritos</span>
-              </Button>
-            </div>
           </div>
 
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">

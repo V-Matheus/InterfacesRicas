@@ -8,75 +8,44 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { getAllFilmes } from "@/services/filmes";
 
-export default function Home() {
-  const movies = [
-    {
-      id: "a-jornada",
-      title: "A Jornada",
-      year: "2022",
-      poster: "",
-    },
-    {
-      id: "segredo-da-floresta",
-      title: "O Segredo da Floresta",
-      year: "2021",
-      poster: "",
-    },
-    {
-      id: "alem-do-horizonte",
-      title: "Além do Horizonte",
-      year: "2023",
-      poster: "",
-    },
-  ];
+export default async function Home() {
+  const { movies, error } = await getAllFilmes();
+
+  if (error || !movies) {
+    return (
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+        <div className="text-center">
+          <p className="text-lg font-semibold">Erro ao carregar filmes.</p>
+          <p className="text-sm text-muted-foreground">
+            Tente novamente mais tarde.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
       <section className="flex flex-col gap-8">
+        <h1 className="scroll-m-20 text-center text-4xl font-extrabold tracking-tight text-balance">
+          Filmes
+        </h1>
         <div className="flex flex-col gap-4">
           <InputGroup>
             <InputGroupInput placeholder="Buscar filme pelo título" />
             <InputGroupAddon>
               <Search />
             </InputGroupAddon>
-            <InputGroupAddon align="inline-end">X results</InputGroupAddon>
+            <InputGroupAddon align="inline-end">
+              {movies?.total_results} results
+            </InputGroupAddon>
           </InputGroup>
-
-          <div className="flex flex-wrap gap-3">
-            <Select>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Gênero" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">Terror</SelectItem>
-                <SelectItem value="dark">Suspense</SelectItem>
-                <SelectItem value="system">Ficção</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Classificação" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">Terror</SelectItem>
-                <SelectItem value="dark">Suspense</SelectItem>
-                <SelectItem value="system">Ficção</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-          {movies.map((movie) => (
+          {movies?.results.map((movie) => (
             <Link
               href={`/${movie.id}`}
               key={movie.id}
@@ -85,7 +54,7 @@ export default function Home() {
             >
               <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg">
                 <Image
-                  src={movie.poster}
+                  src={`https://image.tmdb.org/t/p/w780/${movie.poster_path}`}
                   alt={`Poster do filme ${movie.title}`}
                   fill
                   sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
@@ -101,7 +70,7 @@ export default function Home() {
                   {movie.title}
                 </h3>
                 <p className="text-sm text-black/60 dark:text-white/60">
-                  {movie.year}
+                  {movie.release_date}
                 </p>
               </div>
             </Link>
