@@ -1,17 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Search } from "lucide-react";
 
 import { getAllFilmes } from "@/services/filmes";
 
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from "@/components/ui/input-group";
+import { SearchInput } from "@/components/SearchInput";
 
-export async function MoviesList() {
-  const { movies, error } = await getAllFilmes();
+export async function MoviesList({ query }: { query: string }) {
+  const { movies, error } = await getAllFilmes(query);
 
   if (error || !movies) {
     return (
@@ -28,17 +23,7 @@ export async function MoviesList() {
 
   return (
     <>
-      <div className="flex flex-col gap-4">
-        <InputGroup>
-          <InputGroupInput placeholder="Buscar filme pelo título" />
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupAddon align="inline-end">
-            {movies.total_results} results
-          </InputGroupAddon>
-        </InputGroup>
-      </div>
+      <SearchInput totalResults={movies.total_results} />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
         {movies.results.map((movie) => (

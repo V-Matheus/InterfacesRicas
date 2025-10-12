@@ -1,14 +1,19 @@
 import type { MovieProps, MoviesListProps } from "@/types/Movies";
 import { api } from "../api";
 
-export async function getAllFilmes(): Promise<
+export async function getAllFilmes(
+  query?: string,
+): Promise<
   { error: null; movies: MoviesListProps } | { error: unknown; movies: null }
 > {
   try {
-    const resposne = api<MoviesListProps>(
-      "/movie/top_rated?language=en-US&page=1",
-    );
-    const movies = await resposne;
+    const url =
+      query && query.trim() !== ""
+        ? `/search/movie?query=${encodeURIComponent(query.trim())}`
+        : "/movie/top_rated?language=en-US&page=1";
+
+    const movies = await api<MoviesListProps>(url);
+
     return {
       error: null,
       movies,
@@ -32,8 +37,7 @@ export async function getFilmeById(id: string): Promise<
     }
 > {
   try {
-    const resposne = api<MovieProps>(`/movie/${id}?language=en-US`);
-    const movie = await resposne;
+    const movie = await api<MovieProps>(`/movie/${id}?language=en-US`);
     return {
       error: null,
       movie,

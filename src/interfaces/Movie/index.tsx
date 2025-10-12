@@ -40,38 +40,6 @@ export async function Movie({ movie }: { movie: MovieProps }) {
           <div className="mt-8">
             <p className="text-base leading-relaxed">{movie.overview}</p>
           </div>
-
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                Detalhes
-              </h3>
-              <div className="space-y-4 text-sm">
-                <div className="flex">
-                  <p className="w-28 flex-shrink-0 text-slate-500 dark:text-slate-400">
-                    Diretor
-                  </p>
-                  <p>Ricardo Almeida</p>
-                </div>
-                <div className="flex">
-                  <p className="w-28 flex-shrink-0 text-slate-500 dark:text-slate-400">
-                    Elenco
-                  </p>
-                  <p>Isabela Souza, Lucas Martins, Sofia Mendes</p>
-                </div>
-                <div className="flex">
-                  <p className="w-28 flex-shrink-0 text-slate-500 dark:text-slate-400">
-                    Gênero
-                  </p>
-                  {movie.genres.map((genre) => (
-                    <span key={genre.id} className="mr-2">
-                      {genre.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </main>
