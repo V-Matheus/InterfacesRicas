@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Loading from "@/app/loading";
+import Loading from "@/components/Loading";
 import { MoviesList } from "./components/MoviesList";
 
 export default async function Movies() {

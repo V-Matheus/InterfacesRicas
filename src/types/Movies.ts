@@ -1,3 +1,8 @@
+interface Genre {
+  id: number;
+  name: string;
+}
+
 export interface MovieProps {
   adult: boolean;
   backdrop_path: string;
@@ -13,6 +18,7 @@ export interface MovieProps {
   video: boolean;
   vote_average: number;
   vote_count: number;
+  genres: Genre[];
 }
 
 export interface MoviesListProps {

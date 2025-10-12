@@ -1,29 +1,37 @@
-"use client";
-
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Star } from "lucide-react";
+import { getFilmeById } from "@/services/filmes";
+import Link from "next/link";
 
-export default function FilmePage({ params }: { params: { id: string } }) {
+export default async function FilmePage({ 
+  params,
+}: {
+  params: { id: string };
+}) {
   const { id } = params;
 
-  const movie = {
-    id,
-    title: "A Jornada do Herói",
-    year: "2023",
-    genres: "Aventura, Fantasia",
-    duration: "2h 15min",
-    poster: "",
-    backdrop: "",
-    rating: 4.5,
-    reviews: 1250,
-  };
+  const { error, movie } = await getFilmeById(id);
+
+  if (error || !movie) {
+    return (
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+        <div className="text-center">
+          <p className="text-lg font-semibold">Erro ao carregar filme.</p>
+          <p className="text-sm text-muted-foreground">
+            Tente novamente mais tarde.
+          </p>
+          <Link href="/" className="underline ml-1">
+            Voltar para a lista de filmes
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex-1">
       <div className="relative h-64 md:h-96 w-full">
         <Image
-          src={movie.backdrop}
+          src={`https://image.tmdb.org/t/p/w780/${movie.backdrop_path}`}
           alt={`${movie.title} backdrop`}
           fill
           className="object-cover"
@@ -37,7 +45,7 @@ export default function FilmePage({ params }: { params: { id: string } }) {
           <div className="md:flex md:items-end md:gap-8">
             <div className="flex-shrink-0 w-48 h-72 md:w-60 md:h-80 rounded-lg shadow-lg overflow-hidden">
               <Image
-                src={movie.poster}
+                src={`https://image.tmdb.org/t/p/w780/${movie.poster_path}`}
                 alt={`${movie.title} Poster`}
                 width={400}
                 height={600}
@@ -49,22 +57,13 @@ export default function FilmePage({ params }: { params: { id: string } }) {
                 {movie.title}
               </h1>
               <div className="mt-2 flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                <span>{movie.year}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-400 dark:bg-slate-600" />
-                <span>{movie.genres}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-400 dark:bg-slate-600" />
-                <span>{movie.duration}</span>
+                <span>{movie.release_date}</span>
               </div>
             </div>
           </div>
 
           <div className="mt-8">
-            <p className="text-base leading-relaxed">
-              Em um mundo de fantasia, um jovem camponês embarca em uma jornada
-              épica para salvar seu reino de uma força maligna. Ele deve
-              enfrentar desafios, fazer aliados e descobrir seu verdadeiro
-              potencial para cumprir seu destino.
-            </p>
+            <p className="text-base leading-relaxed">{movie.overview}</p>
           </div>
 
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -89,94 +88,11 @@ export default function FilmePage({ params }: { params: { id: string } }) {
                   <p className="w-28 flex-shrink-0 text-slate-500 dark:text-slate-400">
                     Gênero
                   </p>
-                  <p>{movie.genres}</p>
-                </div>
-                <div className="flex">
-                  <p className="w-28 flex-shrink-0 text-slate-500 dark:text-slate-400">
-                    Ano
-                  </p>
-                  <p>{movie.year}</p>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                Avaliações
-              </h3>
-              <div className="flex items-start gap-4">
-                <div className="flex flex-col items-center">
-                  <p className="text-5xl font-bold text-slate-900 dark:text-white">
-                    {movie.rating}
-                  </p>
-                  <div className="flex text-primary">
-                    <Star
-                      fill="oklch(76.9% 0.188 70.08)"
-                      color="oklch(76.9% 0.188 70.08)"
-                    />
-                    <Star
-                      fill="oklch(76.9% 0.188 70.08)"
-                      color="oklch(76.9% 0.188 70.08)"
-                    />
-                    <Star
-                      fill="oklch(76.9% 0.188 70.08)"
-                      color="oklch(76.9% 0.188 70.08)"
-                    />
-
-                    <Star
-                      fill="oklch(76.9% 0.188 70.08)"
-                      color="oklch(76.9% 0.188 70.08)"
-                    />
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    {movie.reviews} reviews
-                  </p>
-                </div>
-                <div className="flex-1 space-y-1 text-xs">
-                  <div className="flex items-center gap-2">
-                    <p className="text-slate-500 dark:text-slate-400">5</p>
-                    <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: "40%" }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-slate-500 dark:text-slate-400">4</p>
-                    <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: "30%" }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-slate-500 dark:text-slate-400">3</p>
-                    <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: "15%" }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-slate-500 dark:text-slate-400">2</p>
-                    <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: "10%" }}
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-slate-500 dark:text-slate-400">1</p>
-                    <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-700">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: "5%" }}
-                      />
-                    </div>
-                  </div>
+                  {movie.genres.map((genre) => (
+                    <span key={genre.id} className="mr-2">
+                      {genre.name}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
