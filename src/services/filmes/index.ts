@@ -1,16 +1,17 @@
 import type { MovieProps, MoviesListProps } from "@/types/Movies";
 import { api } from "../api";
 
-export async function getAllFilmes(
-  query?: string,
-): Promise<
+export async function getAllFilmes({
+  query = "",
+  page = 1,
+}): Promise<
   { error: null; movies: MoviesListProps } | { error: unknown; movies: null }
 > {
   try {
     const url =
       query && query.trim() !== ""
-        ? `/search/movie?query=${encodeURIComponent(query.trim())}`
-        : "/movie/top_rated?language=en-US&page=1";
+        ? `/search/movie?query=${encodeURIComponent(query.trim())}&page=${page}`
+        : `/movie/top_rated?language=en-US&page=${page}`;
 
     const movies = await api<MoviesListProps>(url);
 
