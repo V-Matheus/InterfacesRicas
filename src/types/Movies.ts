@@ -1,4 +1,4 @@
-export interface Filme {
+export interface MovieProps {
   adult: boolean;
   backdrop_path: string;
   genre_ids: number[];
@@ -15,9 +15,9 @@ export interface Filme {
   vote_count: number;
 }
 
-export interface FilmeList {
+export interface MoviesListProps {
   page: number;
-  results: Filme[];
+  results: MovieProps[];
   total_pages: number;
   total_results: number;
 }
