@@ -18,10 +18,13 @@ export function SearchInput({ totalResults }: { totalResults: number }) {
 
   const mountedRef = useRef(false);
   const debounceRef = useRef<number | null>(null);
-  
+  const editingRef = useRef(false);
 
   useEffect(() => {
-    setQuery(searchParams.get("query") || "");
+    const param = searchParams.get("query") || "";
+    if (!editingRef.current) {
+      setQuery(param);
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -69,6 +72,12 @@ export function SearchInput({ totalResults }: { totalResults: number }) {
           placeholder="Buscar filme pelo título"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => {
+            editingRef.current = true;
+          }}
+          onBlur={() => {
+            editingRef.current = false;
+          }}
         />
         <InputGroupAddon>
           <Search />
