@@ -44,16 +44,16 @@
   "screenshots": [
     {
       "src": "/AppImages/screenshots/home.png",
-      "sizes": "1280x720",
-      "type": "image/jpeg",
+      "sizes": "1920x965",
+      "type": "image/png",
       "form_factor": "wide",
       "label": "Tela inicial do App no Desktop"
     },
     {
       "src": "/AppImages/screenshots/film.png",
-      "sizes": "720x1280",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
+      "sizes": "1920x965",
+      "type": "image/png",
+      "form_factor": "wide",
       "label": "Tela inicial do App no Mobile"
     }
   ]
