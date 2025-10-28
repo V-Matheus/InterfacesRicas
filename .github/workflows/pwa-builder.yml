@@ -1,0 +1,145 @@
+name: Build PWA Android Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      pwa_url:
+        description: 'URL do PWA para build'
+        required: true
+        default: 'https://interfaces-ricas.vercel.app/'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Iniciar Análise
+        id: analysis
+        run: |
+          PWA_URL="${{ github.event.inputs.pwa_url }}"
+          ANALYSIS_ID=$(curl -s -X POST "https://www.pwabuilder.com/api/analyses/enqueue?url=$PWA_URL" -d "{\"url\":\"$PWA_URL\"}")
+          echo "Analysis ID: $ANALYSIS_ID"
+          echo "::set-output name=analysis_id::$ANALYSIS_ID"
+
+      - name: 2. Obter Dados do Manifest (Polling)
+        id: manifest_data
+        run: |
+          ANALYSIS_ID="${{ steps.analysis.outputs.analysis_id }}"
+          MANIFEST_URL="https://www.pwabuilder.com/api/analyses?id=$ANALYSIS_ID"
+          
+          echo "Aguardando análise ser completada..."
+          while true; do
+            RESPONSE_JSON=$(curl -s $MANIFEST_URL)
+            STATUS=$(echo $RESPONSE_JSON | jq -r .status)
+            
+            if [ "$STATUS" == "Completed" ]; then
+              echo "Análise completada!"
+              echo $RESPONSE_JSON | jq -r .webManifest.manifest > manifest.json
+              echo "::set-output name=manifest_json_path::manifest.json"
+              break
+            else
+              echo "Status da análise: $STATUS... aguardando 5s."
+              sleep 5
+            fi
+          done
+
+      - name: 3. Construir Payload do Job de Build
+        id: job_payload
+        run: |
+          jq -n \
+            --argjson manifest "$(cat manifest.json)" \
+            --arg analysisId "${{ steps.analysis.outputs.analysis_id }}" \
+            --arg pwaUrl "${{ github.event.inputs.pwa_url }}" \
+            --arg packageId "app.vercel.interfaces_ricas.twa" \
+            --arg appVersion "1.0.0.1" \
+            --argjson appVersionCode 2 \
+            '{
+              "analysisId": $analysisId,
+              "appVersion": $appVersion,
+              "appVersionCode": $appVersionCode,
+              "backgroundColor": $manifest.background_color,
+              "display": $manifest.display,
+              "enableNotifications": true,
+              "enableSiteSettingsShortcut": true,
+              "fallbackType": "customtabs",
+              "features": { "locationDelegation": {"enabled": false}, "playBilling": {"enabled": false} },
+              "fullScopeUrl": $pwaUrl,
+              "host": ($pwaUrl | sub("https://"; "") | sub("/"; "")),
+              "iconUrl": ($pwaUrl + $manifest.icons[0].src),
+              "includeSourceCode": false,
+              "isChromeOSOnly": false,
+              "isMetaQuest": false,
+              "launcherName": $manifest.short_name,
+              "maskableIconUrl": ($pwaUrl + $manifest.icons[0].src),
+              "minSdkVersion": 23,
+              "monochromeIconUrl": "",
+              "name": $manifest.name,
+              "navigationColor": $manifest.theme_color,
+              "navigationColorDark": $manifest.theme_color,
+              "navigationDividerColor": $manifest.theme_color,
+              "navigationDividerColorDark": $manifest.theme_color,
+              "orientation": $manifest.orientation,
+              "packageId": $packageId,
+              "pwaUrl": $pwaUrl,
+              "shortcuts": [],
+              # ATENÇÃO: A configuração abaixo ("signingMode": "new") gera uma NOVA chave de assinatura a cada build (ótimo para testes, mas não para produção/Google Play)
+              "signing": { "file": null, "alias": "my-key-alias", "fullName": $manifest.name, "organization": $manifest.name },
+              "signingMode": "new",
+              "splashScreenFadeOutDuration": 300,
+              "startUrl": $manifest.start_url,
+              "themeColor": $manifest.theme_color,
+              "themeColorDark": $manifest.theme_color
+            }' > payload.json
+
+          echo "Payload de Build criado:"
+          cat payload.json
+          echo "::set-output name=payload_path::payload.json"
+
+      - name: 4. Iniciar Job de Build
+        id: build_job
+        run: |
+          JOB_ID_RESPONSE=$(curl -s -X POST "https://pwabuilder-cloudapk.azurewebsites.net/enqueuePackageJob" \
+            -H "Content-Type: application/json" \
+            -d "@${{ steps.job_payload.outputs.payload_path }}")
+          
+          echo "Job ID: $JOB_ID_RESPONSE"
+          echo "::set-output name=job_id::$JOB_ID_RESPONSE"
+
+      - name: 5. Polling do Status do Build
+        id: job_status
+        run: |
+          JOB_ID="${{ steps.build_job.outputs.job_id }}"
+          STATUS_URL="https://pwabuilder-cloudapk.azurewebsites.net/getPackageJob?id=$JOB_ID"
+          
+          echo "Aguardando build do APK ser completado (isso pode levar 1-2 minutos)..."
+          while true; do
+            RESPONSE_JSON=$(curl -s $STATUS_URL)
+            STATUS=$(echo $RESPONSE_JSON | jq -r .status)
+            
+            if [ "$STATUS" == "Completed" ]; then
+              echo "Build completado!"
+              echo $RESPONSE_JSON | jq .
+              break
+            elif [ "$STATUS" == "Error" ]; then
+              echo "Falha no Build!"
+              echo $RESPONSE_JSON | jq .
+              exit 1
+            else
+              echo "Status do Build: $STATUS... aguardando 15s."
+              sleep 15
+            fi
+          done
+
+      - name: 6. Download do Pacote
+        run: |
+          JOB_ID="${{ steps.build_job.outputs.job_id }}"
+          DOWNLOAD_URL="https://pwabuilder-cloudapk.azurewebsites.net/downloadPackageZip?id=$JOB_ID"
+          
+          echo "Baixando o arquivo..."
+          curl -L -o PWA-Android-Package.zip "$DOWNLOAD_URL"
+          echo "Arquivo salvo como PWA-Android-Package.zip"
+
+      - name: 7. Salvar Artefato
+        uses: actions/upload-artifact@v3
+        with:
+          name: pwa-android-package
+          path: PWA-Android-Package.zip
