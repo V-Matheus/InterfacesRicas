@@ -58,12 +58,32 @@ jobs:
       - name: 3. Construir Payload do Job de Build
         id: job_payload
         run: |
+          # 1. Obter a URL de input
+          PWA_URL="${{ github.event.inputs.pwa_url }}"
+          
+          # 2. Extrair o host (removendo "https://" e a barra "/" final)
+          HOST=$(echo $PWA_URL | sed -e 's|^https://||' -e 's|/$||')
+          
+          # 3. Inverter a ordem dos segmentos do host
+          REVERSED_HOST=$(echo $HOST | awk -F. '{ for (i=NF; i>0; i--) printf "%s%s", $i, (i>1 ? "." : "") }')
+          
+          # 4. Sanitizar o ID (substituir hífens por underscores)
+          SANITIZED_HOST=$(echo $REVERSED_HOST | sed 's/-/_/g')
+          
+          # 5. Criar o packageId final com o sufixo .twa
+          DYNAMIC_PACKAGE_ID="${SANITIZED_HOST}.twa"
+          
+          echo "URL Original: $PWA_URL"
+          echo "Host Extraído: $HOST"
+          echo "Package ID Dinâmico: $DYNAMIC_PACKAGE_ID"
+          
+          # Agora, passamos $DYNAMIC_PACKAGE_ID para o JQ
           jq -n \
             --argjson manifest "$(cat manifest.json)" \
             --arg analysisId "${{ steps.analysis.outputs.analysis_id }}" \
             --arg pwaUrl "${{ github.event.inputs.pwa_url }}" \
             --arg manifestWebUrl "${{ steps.manifest_data.outputs.manifest_web_url }}" \
-            --arg packageId "app.vercel.interfaces_ricas.twa" \
+            --arg packageId "$DYNAMIC_PACKAGE_ID" \
             --arg appVersion "1.0.0.1" \
             --argjson appVersionCode 2 \
             '{
