@@ -1,4 +1,4 @@
-name: Build PWA Android Package
+name: Build PWA Package
 
 on:
   workflow_dispatch:
@@ -7,12 +7,21 @@ on:
         description: 'URL do PWA para build'
         required: true
         default: 'https://interfaces-ricas.vercel.app/'
+      platform:
+        description: 'Plataforma para o build'
+        required: true
+        type: choice
+        options:
+          - android
+          - ios
+        default: 'android'
 
 jobs:
-  build:
+  build-android:
+    if: github.event.inputs.platform == 'android'
     runs-on: ubuntu-latest
     steps:
-      - name: 1. 🚀 Iniciar Análise
+      - name: 1. Iniciar Análise
         id: analysis
         run: |
           PWA_URL="${{ github.event.inputs.pwa_url }}"
@@ -20,7 +29,7 @@ jobs:
           echo "Analysis ID: $ANALYSIS_ID"
           echo "analysis_id=$ANALYSIS_ID" >> $GITHUB_OUTPUT
 
-      - name: 2. 📋 Obter Dados do Manifest (Polling)
+      - name: 2. Obter Dados do Manifest (Polling)
         id: manifest_data
         run: |
           ANALYSIS_ID="${{ steps.analysis.outputs.analysis_id }}"
@@ -46,7 +55,7 @@ jobs:
             fi
           done
 
-      - name: 3. 🛠️ Construir Payload do Job de Build
+      - name: 3. Construir Payload do Job de Build
         id: job_payload
         run: |
           jq -n \
@@ -107,7 +116,7 @@ jobs:
           cat payload.json
           echo "payload_path=payload.json" >> $GITHUB_OUTPUT
 
-      - name: 4. 📦 Iniciar Job de Build
+      - name: 4. Iniciar Job de Build
         id: build_job
         run: |
           JOB_ID_RESPONSE=$(curl -s -X POST "https://pwabuilder-cloudapk.azurewebsites.net/enqueuePackageJob" \
@@ -122,7 +131,7 @@ jobs:
           echo "Job ID: $JOB_ID_RESPONSE"
           echo "job_id=$JOB_ID_RESPONSE" >> $GITHUB_OUTPUT
 
-      - name: 5. 🔄 Polling do Status do Build
+      - name: 5. Polling do Status do Build
         id: job_status
         run: |
           JOB_ID="${{ steps.build_job.outputs.job_id }}"
@@ -152,7 +161,7 @@ jobs:
             fi
           done
 
-      - name: 6. ⬇️ Download do Pacote
+      - name: 6. Download do Pacote
         run: |
           JOB_ID="${{ steps.build_job.outputs.job_id }}"
           DOWNLOAD_URL="https://pwabuilder-cloudapk.azurewebsites.net/downloadPackageZip?id=$JOB_ID"
@@ -161,8 +170,24 @@ jobs:
           curl -L -o PWA-Android-Package.zip "$DOWNLOAD_URL"
           echo "Arquivo salvo como PWA-Android-Package.zip"
 
-      - name: 7. 📤 Salvar Artefato
+      - name: 7. Descompactar Pacote
+        run: |
+          mkdir ./pwa-build-contents
+          unzip PWA-Android-Package.zip -d ./pwa-build-contents
+          echo "Conteúdo descompactado para ./pwa-build-contents"
+
+      - name: 8. Salvar Artefato
         uses: actions/upload-artifact@v4
         with:
           name: pwa-android-package
-          path: PWA-Android-Package.zip
+          path: ./pwa-build-contents/
+
+  build-ios:
+    if: github.event.inputs.platform == 'ios'
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⚠️ iOS Build (Not Implemented)
+        run: |
+          echo "::warning::O pipeline de build para iOS (PWA Builder) usa uma API diferente (pwabuilder-cloudios) e um fluxo distinto."
+          echo "Este job é um placeholder e ainda não está implementado."
+
