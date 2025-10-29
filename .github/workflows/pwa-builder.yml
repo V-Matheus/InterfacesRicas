@@ -289,5 +289,8 @@ jobs:
           echo "Conteúdo descompactado para ./pwa-ios-contents"
 
       - name: 5. Salvar Artefato (iOS)
-        uses: actions/upload-artifact@
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-ios-package
+          path: ./pwa-ios-contents/
 
