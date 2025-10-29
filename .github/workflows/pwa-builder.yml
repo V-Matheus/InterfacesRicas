@@ -206,8 +206,88 @@ jobs:
     if: github.event.inputs.platform == 'ios'
     runs-on: ubuntu-latest
     steps:
-      - name: ⚠️ iOS Build (Not Implemented)
+      - name: 1. Iniciar Análise
+        id: analysis
         run: |
-          echo "::warning::O pipeline de build para iOS (PWA Builder) usa uma API diferente (pwabuilder-cloudios) e um fluxo distinto."
-          echo "Este job é um placeholder e ainda não está implementado."
+          PWA_URL="${{ github.event.inputs.pwa_url }}"
+          ANALYSIS_ID=$(curl -s -X POST "https://www.pwabuilder.com/api/analyses/enqueue?url=$PWA_URL" -d "{\"url\":\"$PWA_URL\"}")
+          echo "Analysis ID: $ANALYSIS_ID"
+          echo "analysis_id=$ANALYSIS_ID" >> $GITHUB_OUTPUT
+
+      - name: 2. Obter Dados do Manifest (Polling)
+        id: manifest_data
+        run: |
+          ANALYSIS_ID="${{ steps.analysis.outputs.analysis_id }}"
+          MANIFEST_URL="https://www.pwabuilder.com/api/analyses?id=$ANALYSIS_ID"
+          
+          echo "Aguardando análise ser completada..."
+          while true; do
+            RESPONSE_JSON=$(curl -s $MANIFEST_URL)
+            STATUS=$(echo $RESPONSE_JSON | jq -r .status)
+            
+            if [ "$STATUS" == "Completed" ]; then
+              echo "Análise completada!"
+              echo $RESPONSE_JSON > analysis_response.json
+              echo $RESPONSE_JSON | jq -r .webManifest.manifest > manifest.json
+              echo "manifest_json_path=manifest.json" >> $GITHUB_OUTPUT
+              
+              MANIFEST_WEB_URL=$(echo $RESPONSE_JSON | jq -r .webManifest.url)
+              echo "manifest_web_url=$MANIFEST_WEB_URL" >> $GITHUB_OUTPUT
+              break
+            else
+              echo "Status da análise: $STATUS... aguardando 5s."
+              sleep 5
+            fi
+          done
+
+      - name: 3. Construir Payload e Baixar Pacote (iOS)
+        run: |
+          # --- Geração Dinâmica do BundleId ---
+          PWA_URL="${{ github.event.inputs.pwa_url }}"
+          HOST=$(echo $PWA_URL | sed -e 's|^https://||' -e 's|/$||')
+          REVERSED_HOST=$(echo $HOST | awk -F. '{ for (i=NF; i>0; i--) printf "%s%s", $i, (i>1 ? "." : "") }')
+          # Sanitizar (substituir hífens por underscores)
+          DYNAMIC_BUNDLE_ID=$(echo $REVERSED_HOST | sed 's/-/_/g')
+          echo "Bundle ID Dinâmico: $DYNAMIC_BUNDLE_ID"
+          
+          # --- Construir Payload com JQ ---
+          jq -n \
+            --argjson manifest "$(cat manifest.json)" \
+            --arg pwaUrl "${{ github.event.inputs.pwa_url }}" \
+            --arg manifestWebUrl "${{ steps.manifest_data.outputs.manifest_web_url }}" \
+            --arg bundleId "$DYNAMIC_BUNDLE_ID" \
+            '{
+              "bundleId": $bundleId,
+              "url": $pwaUrl,
+              "name": $manifest.short_name,
+              "imageUrl": ($pwaUrl + $manifest.icons[0].src),
+              "manifest": $manifest,
+              "manifestUrl": $manifestWebUrl,
+              "permittedUrls": [],
+              "splashColor": $manifest.theme_color,
+              "progressBarColor": $manifest.theme_color,
+              "statusBarColor": $manifest.theme_color
+            }' > payload-ios.json
+            
+          echo "Payload iOS de Build criado:"
+          cat payload-ios.json
+          
+          # --- Chamar API e Fazer Download ---
+          echo "Enviando para a API de build do iOS e iniciando o download..."
+          # Usamos -L para seguir redirects, -o para salvar o arquivo
+          curl -L -X POST "https://www.pwabuilder.com/api/iospackage/create" \
+            -H "Content-Type: application/json" \
+            -d "@payload-ios.json" \
+            -o PWA-iOS-Package.zip
+            
+          echo "Arquivo salvo como PWA-iOS-Package.zip"
+
+      - name: 4. Descompactar Pacote (iOS)
+        run: |
+          mkdir ./pwa-ios-contents
+          unzip PWA-iOS-Package.zip -d ./pwa-ios-contents
+          echo "Conteúdo descompactado para ./pwa-ios-contents"
+
+      - name: 5. Salvar Artefato (iOS)
+        uses: actions/upload-artifact@
 
